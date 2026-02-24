@@ -98,7 +98,7 @@ overest_linex = np.mean(preds_linex > trues) * 100
 print(f"   {'Overestimation %':<20} {overest_mse:>9.1f}% {overest_linex:>9.1f}%")
 print()
 print(f"   → LinEx 将高估率从 {overest_mse:.1f}% 降至 {overest_linex:.1f}%")
-print(f"   → 这意味着更少的"意外故障"风险!")
+print(f"   → 这意味着更少的意外故障风险!")
 
 # ---- 5. Plot comparison ----
 print("\n[5] 生成对比图表...")

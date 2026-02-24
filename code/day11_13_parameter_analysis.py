@@ -129,7 +129,7 @@ sweep_maintenances = np.array(sweep_maintenances)
 # Day 12: Cost Smile Curve
 # ============================================================
 print(f"\n{'=' * 40}")
-print("Day 12: 绘制"成本微笑曲线"")
+print("Day 12: 绘制成本微笑曲线")
 print(f"{'=' * 40}")
 
 plot_cost_smile_curve(a_values, sweep_costs, save=True)
