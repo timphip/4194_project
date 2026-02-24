@@ -33,7 +33,7 @@ WINDOW_SIZE = 30
 HIDDEN_SIZE = 64
 FC_DIM = 128
 DROPOUT = 0.3
-N_EPOCHS_SWEEP = 60       # Fewer epochs for sweep efficiency
+N_EPOCHS_SWEEP = 30       # Fewer epochs for sweep efficiency
 N_DAYS_SIM = 500           # Fewer days for sweep efficiency
 BATCH_SIZE = 64
 N_MACHINES = 100
@@ -129,7 +129,7 @@ sweep_maintenances = np.array(sweep_maintenances)
 # Day 12: Cost Smile Curve
 # ============================================================
 print(f"\n{'=' * 40}")
-print("Day 12: 绘制"成本微笑曲线"")
+print("Day 12: 绘制\"成本微笑曲线\"")
 print(f"{'=' * 40}")
 
 plot_cost_smile_curve(a_values, sweep_costs, save=True)

@@ -15,7 +15,7 @@ import os
 sys.path.insert(0, os.path.dirname(__file__))
 
 import numpy as np
-from src.simulator import CostConfig, calculate_cost, greedy_scheduler, Machine, FleetSimulator
+from src.simulator import CostConfig, calculate_cost, greedy_scheduler, highs_scheduler, Machine, FleetSimulator
 
 print("=" * 60)
 print("Day 6-8: Fleet Selective Maintenance Simulator")
@@ -52,23 +52,29 @@ for action, rul in [('maintain', 30), ('maintain', 5), ('failure', 0)]:
     print(f"   action={action:<10} true_rul={rul:>3} → cost=${cost:.1f}")
 
 # ============================================================
-# Day 7: Greedy Scheduler
+# Day 7: HiGHS 最优调度策略 (替代贪心)
 # ============================================================
 print("\n" + "=" * 40)
-print("Day 7: 贪心调度策略")
+print("Day 7: HiGHS MILP 最优调度")
 print("=" * 40)
 
 # Test the scheduler
 test_ruls = np.array([50, 8, 120, 3, 45, 12, 200, 7, 90, 30,
                        14, 60, 5, 80, 25, 10, 150, 6, 70, 40])
 
-decisions = greedy_scheduler(test_ruls, capacity=2, safety_threshold=15)
+# ---- Greedy (legacy baseline) ----
+decisions_greedy = greedy_scheduler(test_ruls, capacity=2, safety_threshold=15)
+
+# ---- HiGHS Optimal ----
+decisions = highs_scheduler(test_ruls, capacity=2, safety_threshold=15, config=config)
 
 print(f"\n   输入预测 RUL (20 台机器):")
 print(f"   {test_ruls}")
-print(f"\n   调度决策 (1=维修, 0=不修):")
+print(f"\n   贪心调度 (baseline):")
+print(f"   {decisions_greedy}")
+print(f"\n   HiGHS 最优调度:")
 print(f"   {decisions}")
-print(f"\n   被选中维修的机器:")
+print(f"\n   HiGHS 选中维修的机器:")
 for i in range(len(decisions)):
     if decisions[i] == 1:
         print(f"   → 机器 {i}: 预测 RUL = {test_ruls[i]} (紧急!)")

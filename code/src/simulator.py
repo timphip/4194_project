@@ -17,6 +17,7 @@ Game Rules:
 
 import numpy as np
 import torch
+import highspy
 from src.data_generator import generate_single_curve
 
 
@@ -79,6 +80,7 @@ def calculate_cost(action, true_rul, config):
 def greedy_scheduler(predicted_ruls, capacity, safety_threshold):
     """
     Greedy scheduling: maintain the most urgent machines first.
+    (Legacy — kept for reference; superseded by highs_scheduler)
     
     Algorithm:
         1. Sort machines by predicted RUL (ascending — most urgent first)
@@ -107,6 +109,85 @@ def greedy_scheduler(predicted_ruls, capacity, safety_threshold):
             decisions[idx] = 1
             maintained += 1
     
+    return decisions
+
+
+def highs_scheduler(predicted_ruls, capacity, safety_threshold, config):
+    """
+    Optimal maintenance scheduling via HiGHS MILP solver.
+
+    Formulation (binary integer program):
+        min  Σ_i  x_i · (m_i − f_i)
+        s.t. Σ_i  x_i  ≤  capacity
+             x_i ∈ {0, 1}   for all i
+
+    where:
+        m_i = c_preventive + c_waste · pred_rul_i   (cost if we maintain)
+        f_i = c_failure · max(0, 1 − pred_rul_i / safety_threshold)
+              (expected failure risk cost if we do NOT maintain)
+
+    A negative coefficient (m_i − f_i < 0) means maintenance is cheaper
+    than the expected failure cost, so the solver will try to set x_i = 1.
+
+    Args:
+        predicted_ruls:   np.array [n_machines], predicted RUL for each machine
+        capacity:         int, max number of machines to maintain per day
+        safety_threshold: float, RUL below which failure risk is nonzero
+        config:           CostConfig instance with cost parameters
+
+    Returns:
+        decisions: np.array [n_machines], 1 = maintain, 0 = no action
+    """
+    n = len(predicted_ruls)
+    decisions = np.zeros(n, dtype=int)
+
+    # ---- Build HiGHS model ----
+    h = highspy.Highs()
+    h.silent()  # suppress solver output
+
+    # Add n binary decision variables x_0 … x_{n-1}
+    inf = highspy.kHighsInf
+    lower = np.zeros(n)
+    upper = np.ones(n)
+
+    # Compute objective coefficients
+    obj = np.empty(n)
+    for i in range(n):
+        m_cost = config.c_preventive + config.c_waste * predicted_ruls[i]
+        f_risk = config.c_failure * max(0.0, 1.0 - predicted_ruls[i] / safety_threshold)
+        obj[i] = m_cost - f_risk  # negative ⇒ should maintain
+
+    h.addVars(n, lower, upper)
+
+    # Set objective (minimize)
+    cost_array = obj.tolist()
+    for i in range(n):
+        h.changeColCost(i, cost_array[i])
+
+    # Mark all variables as integer (binary)
+    integrality = [highspy.HighsVarType.kInteger] * n
+    for i in range(n):
+        h.changeColIntegrality(i, integrality[i])
+
+    # Capacity constraint: Σ x_i ≤ capacity
+    row_indices = np.arange(n, dtype=np.int32)
+    row_values = np.ones(n)
+    h.addRow(-inf, float(capacity), n, row_indices, row_values)
+
+    # ---- Solve ----
+    h.run()
+
+    status = h.getInfoValue("primal_solution_status")[1]
+    # 2 = feasible
+    if status == 2:
+        sol = h.getSolution()
+        for i in range(n):
+            if sol.col_value[i] > 0.5:
+                decisions[i] = 1
+    else:
+        # Fallback to greedy if solver fails
+        decisions = greedy_scheduler(predicted_ruls, capacity, safety_threshold)
+
     return decisions
 
 
@@ -292,11 +373,12 @@ class FleetSimulator:
                     if i not in running_indices:
                         predicted_ruls[i] = 99999
                 
-                # Step 3: Schedule maintenance
-                decisions = greedy_scheduler(
+                # Step 3: Schedule maintenance (HiGHS MILP optimizer)
+                decisions = highs_scheduler(
                     predicted_ruls,
                     self.config.capacity,
-                    self.config.safety_threshold
+                    self.config.safety_threshold,
+                    self.config
                 )
                 
                 # Step 4: Execute maintenance decisions

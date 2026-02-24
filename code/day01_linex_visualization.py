@@ -27,7 +27,7 @@ print()
 
 # Test specific values
 test_errors = [-2, -1, 0, 1, 2]
-a = 0.5
+a = 1.5
 print(f"   a = {a} (惩罚高估 RUL → 安全优先)")
 print(f"   {'Error':<10} {'LinEx':<12} {'MSE':<12} {'MAE':<12}")
 print(f"   {'-----':<10} {'-----':<12} {'---':<12} {'---':<12}")

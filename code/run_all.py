@@ -53,7 +53,7 @@ def main():
             result = subprocess.run(
                 [sys.executable, script],
                 cwd=script_dir,
-                timeout=600,  # 10 min timeout per script
+                timeout=1800,  # 30 min timeout per script
             )
             elapsed = time.time() - start
             

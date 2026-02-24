@@ -33,7 +33,7 @@ LR = 1e-3
 BATCH_SIZE = 64
 N_MACHINES = 100
 SEED = 42
-LINEX_A = 0.1  # 形状参数: 惩罚高估 RUL
+LINEX_A = 5.0  # 形状参数: 惩罚高估 RUL
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 print(f"\n[Config] Device: {DEVICE}, LinEx a={LINEX_A}")
@@ -98,7 +98,7 @@ overest_linex = np.mean(preds_linex > trues) * 100
 print(f"   {'Overestimation %':<20} {overest_mse:>9.1f}% {overest_linex:>9.1f}%")
 print()
 print(f"   → LinEx 将高估率从 {overest_mse:.1f}% 降至 {overest_linex:.1f}%")
-print(f"   → 这意味着更少的"意外故障"风险!")
+print(f"   → 这意味着更少的意外故障风险!")
 
 # ---- 5. Plot comparison ----
 print("\n[5] 生成对比图表...")
